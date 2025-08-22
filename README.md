@@ -2,6 +2,8 @@
 
 An internal web tool to archive (soft-delete) all pages of a Notion database with progress tracking. Designed for enterprise IT to review, deploy, and operate safely.
 
+If you just want to use the program, you can download it by clicking on the `<> Code` button and selecting "Download ZIP". Then, you can execute the programme `notion-row-deleter-main/dist/notion-row-deleter-windows-amd64.exe`
+
 ## Overview
 - Purpose: Archive all pages in a Notion Database via Notion API.
 - UI: Simple web form to enter Notion API token and Database ID, plus a live progress page.
