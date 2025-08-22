@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Documentation — Notion API token</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: #121832;
+            --panel-2: #0f1630;
+            --text: #e7eaf3;
+            --muted: #a9b0c6;
+            --primary: #5b8cff;
+            --primary-600: #3d73ff;
+            --border: rgba(255,255,255,.08);
+            --ring: rgba(91,140,255,.35);
+            --shadow: 0 10px 30px rgba(0,0,0,.35);
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            background: radial-gradient(1200px 800px at 10% -10%, #1a2455 0%, transparent 60%),
+                        radial-gradient(800px 600px at 100% 0%, #14204a 0%, transparent 50%),
+                        var(--bg);
+            color: var(--text);
+        }
+        .wrap { max-width: 860px; margin: 0 auto; padding: 40px 20px; }
+        header { display:flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
+        header h1 { font-size: 1.5rem; margin: 0; letter-spacing: .2px; }
+        .status { display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .6rem; border-radius:999px; background:var(--panel-2); border:1px solid var(--border); color:var(--muted); font-weight:600; font-size:.9rem; }
+
+        .card { background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.0)), var(--panel); border:1px solid var(--border); border-radius:14px; padding:22px; box-shadow: var(--shadow); }
+        .card h2 { margin: 0 0 6px 0; font-size: 1.15rem; }
+        .desc { color: var(--muted); margin: 0 0 18px 0; font-size: .95rem; }
+        a { color: var(--text); text-decoration: none; border-bottom: 1px dashed rgba(255,255,255,.25); }
+        a:hover { border-bottom-style: solid; }
+        ol { margin: 0; padding-left: 1.2rem; }
+        li { margin: 12px 0; }
+        .step { margin: 12px 0; padding: 14px; border-radius: 12px; background: var(--panel-2); border:1px solid var(--border); }
+    .imgph { margin-top: 10px; border: 1px dashed rgba(255,255,255,.3); border-radius: 10px; padding: 18px; color: var(--muted); text-align: center; font-size: .9rem; }
+    .shot { margin-top: 10px; border: 1px solid rgba(255,255,255,.15); border-radius: 12px; overflow: hidden; background: #0e1430; }
+    .shot img { display: block; width: 100%; height: auto; }
+        .callout { margin: 16px 0; padding: 12px 14px; border-radius: 12px; border: 1px solid color-mix(in oklab, var(--primary) 40%, var(--border)); background: color-mix(in oklab, var(--primary) 10%, transparent); color: #dfe7ff; }
+        .footnote { margin-top: 16px; color: var(--muted); font-size: .9rem; }
+    .code { display:block; margin-top:8px; padding:10px 12px; background:#0e1430; border:1px solid var(--border); border-radius:10px; overflow:auto; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.9rem; color: var(--text); }
+    .hl { color:#ffd166; font-weight:700; }
+    </style>
+    </head>
+    <body>
+        <div class="wrap">
+            <header>
+                <h1>Notion Row Deleter</h1>
+                <div class="status">Guide</div>
+            </header>
+
+            <div class="card">
+                <h2>How to find your Notion Database ID</h2>
+                <p class="desc">The Database ID is part of the Notion URL when viewing the database as a page.</p>
+                <ol>
+                    <li class="step"><strong>Open the page that contains the database</strong> (table, board, list, etc.). Ideally, open the database in full-page view.</li>
+                    <li class="step"><strong>Copy the page URL</strong> from your browser’s address bar.</li>
+                    <li class="step"><strong>From the URL, copy the 32-character ID right after <em>notion.so/</em> and before <em>?v=</em></strong>.
+                        <div class="code">https://www.notion.so/<span class="hl">2578e582cda5807891fdedbdb7dd30da</span>?v=2578e582cda5804bbd04000c1968a4db</div>
+                        Paste the highlighted part into the “Notion Database ID” field on the home page.
+                        <div class="callout" style="margin-top:12px">Tip: Some URLs may show hyphens (UUID form). You can paste either the 32-character form (no hyphens) or the hyphenated UUID; both are accepted by the API.</div>
+                    </li>
+                </ol>
+            </div>
+
+            <div class="card" style="margin-top:18px">
+                <h2>How to obtain your Notion API token</h2>
+                <p class="desc">Follow these steps to create or use an Internal Integration in Notion and retrieve its secret token. Open Notion Integrations: <a href="https://www.notion.so/profile/integrations" target="_blank" rel="noopener">notion.so/profile/integrations</a>.</p>
+
+                <ol>
+                    <li class="step" id="step-1">
+                        <strong>Create a new integration</strong> or open an existing one with the right privileges, and ensure it is connected to the correct pages/databases.
+                        <div class="shot"><img src="/public/doc_step_1.png" alt="Notion integrations page - create a new integration"></div>
+                    </li>
+                    <li class="step" id="step-2">
+                        <strong>If creating a new integration</strong>: enter a name, choose your workspace, set the type to <em>Internal</em>, then click Save. Next, click <em>Configure integration settings</em> to adjust permissions.
+                        <!-- <div class="imgph">[Your screenshot for step 2 here]</div> -->
+                    </li>
+                    <li class="step" id="step-3">
+                        <strong>Select the page where you want to delete the rows</strong> in the <em>Access</em> tab.
+                        <div class="shot"><img src="/public/doc_step_2.png" alt="Notion integrations page - create a new integration"></div>
+                    </li>
+                    <li class="step" id="step-4">
+                        <strong>Copy the Internal Integration secret in the <em>Configuration</em> tab</strong>. Treat it like a password; you will paste it in the application’s home page when starting a deletion run.
+                        <div class="shot"><img src="/public/doc_step_3.png" alt="Copy the internal integration secret"></div>
+                    </li>
+                </ol>
+
+                <div class="callout">
+                    Keep the token secret. Prefer using a dedicated integration scoped only to the target database. Rotate/revoke if exposed.
+                </div>
+
+                <p class="footnote"><a href="/">Back to home</a></p>
+            </div>
+        </div>
+    </body>
+    </html>

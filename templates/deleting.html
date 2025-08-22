@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Deletion progress</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: #121832;
+            --panel-2: #0f1630;
+            --text: #e7eaf3;
+            --muted: #a9b0c6;
+            --primary: #5b8cff;
+            --primary-600: #3d73ff;
+            --ok: #36d399;
+            --border: rgba(255,255,255,.08);
+            --ring: rgba(91,140,255,.35);
+            --shadow: 0 10px 30px rgba(0,0,0,.35);
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            background: radial-gradient(1200px 800px at 10% -10%, #1a2455 0%, transparent 60%),
+                        radial-gradient(800px 600px at 100% 0%, #14204a 0%, transparent 50%),
+                        var(--bg);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px; }
+        header { display:flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
+        header h1 { font-size: 1.5rem; margin: 0; letter-spacing: .2px; }
+        .status { display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .6rem; border-radius:999px; background:var(--panel-2); border:1px solid var(--border); color:var(--muted); font-weight:600; font-size:.9rem; }
+        .dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+        .dot.ok { background: var(--ok); box-shadow: 0 0 8px rgba(54,211,153,.7); }
+        .dot.run { background: var(--primary); box-shadow: 0 0 8px rgba(91,140,255,.7); }
+
+        .card { background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.0)), var(--panel); border:1px solid var(--border); border-radius:14px; padding:22px; box-shadow: var(--shadow); }
+        .card h2 { margin: 0 0 6px 0; font-size: 1.15rem; }
+        .desc { color: var(--muted); margin: 0 0 18px 0; font-size: .95rem; }
+
+        .metrics { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin: 12px 0 8px; }
+        .metric { background: var(--panel-2); border:1px solid var(--border); border-radius: 12px; padding: 12px; text-align:center; }
+        .metric .label { color: var(--muted); font-size: .85rem; }
+        .metric .value { font-weight: 800; font-size: 1.2rem; margin-top: 6px; }
+
+        .bar { position: relative; height: 10px; background: #0e1430; border:1px solid var(--border); border-radius: 999px; overflow: hidden; }
+        .bar-inner { position:absolute; left:0; top:0; bottom:0; width:0%; background: linear-gradient(90deg, var(--primary), var(--primary-600)); box-shadow: 0 0 18px rgba(91,140,255,.35) inset; transition: width .2s ease; }
+
+        .footnote { margin-top: 16px; color: var(--muted); font-size: .9rem; }
+        a { color: var(--text); text-decoration: none; border-bottom: 1px dashed rgba(255,255,255,.25); }
+        a:hover { border-bottom-style: solid; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <h1>Notion Row Deleter</h1>
+            <div class="status">
+                <span class="dot {{if .Running}}run{{else}}ok{{end}}"></span>
+                <span id="status">{{if .Running}}In progress{{else}}Idle{{end}}</span>
+            </div>
+        </header>
+
+        <div class="card" id="live" {{if not .Running}}style="opacity:.9"{{end}}>
+            <h2>Deletion progress</h2>
+            <p class="desc">Live status of your deletion run. This page updates automatically.</p>
+
+            <div class="metrics">
+                <div class="metric">
+                    <div class="label">Deleted</div>
+                    <div class="value" id="deleted">0</div>
+                </div>
+                <div class="metric">
+                    <div class="label">Total</div>
+                    <div class="value" id="total">?</div>
+                </div>
+                <div class="metric">
+                    <div class="label">Remaining</div>
+                    <div class="value" id="remaining">?</div>
+                </div>
+            </div>
+
+            <div class="bar" aria-label="Progress">
+                <div class="bar-inner" id="bar"></div>
+            </div>
+
+            <p class="desc" style="margin-top:12px">Estimated time remaining: <strong><span id="eta">--</span></strong></p>
+        </div>
+
+        <p class="footnote"><a href="/">Back to home</a></p>
+    </div>
+
+    <script>
+        (function(){
+            function fmt(s){
+                s = Number(s||0);
+                var m = Math.floor(s/60), sec = Math.floor(s%60);
+                return (m>0? m+"m ":"") + sec + "s";
+            }
+            function setProgress(deleted, total){
+                var pct = 0;
+                if (total > 0) pct = Math.max(0, Math.min(100, (deleted/total)*100));
+                var bar = document.getElementById('bar');
+                if (bar) bar.style.width = pct + '%';
+            }
+            var closed = false;
+            var ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+            ws.onmessage = function(ev){
+                try {
+                    var d = JSON.parse(ev.data);
+                    if (typeof d.deleted !== 'undefined') document.getElementById('deleted').textContent = d.deleted;
+                    if (typeof d.total !== 'undefined') document.getElementById('total').textContent = d.total;
+                    if (typeof d.total !== 'undefined' && typeof d.deleted !== 'undefined') {
+                        var rem = Number(d.total) - Number(d.deleted);
+                        if (rem < 0) rem = 0;
+                        document.getElementById('remaining').textContent = rem;
+                        setProgress(Number(d.deleted), Number(d.total));
+                    }
+                    if (typeof d.etaSeconds !== 'undefined') document.getElementById('eta').textContent = fmt(d.etaSeconds);
+                    if (typeof d.running !== 'undefined') {
+                        var st = document.getElementById('status');
+                        if (st) st.textContent = d.running ? 'In progress' : 'Completed';
+                        if (!d.running && !closed) { ws.close(); closed = true; }
+                    }
+                } catch(e){}
+            };
+        })();
+    </script>
+</body>
+</html>

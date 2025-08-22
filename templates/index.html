@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Notion Deletion</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: #121832;
+            --panel-2: #0f1630;
+            --text: #e7eaf3;
+            --muted: #a9b0c6;
+            --primary: #5b8cff;
+            --primary-600: #3d73ff;
+            --danger: #ff6b6b;
+            --ok: #36d399;
+            --ring: rgba(91,140,255,.35);
+            --border: rgba(255,255,255,.08);
+            --shadow: 0 10px 30px rgba(0,0,0,.35);
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            background: radial-gradient(1200px 800px at 10% -10%, #1a2455 0%, transparent 60%),
+                        radial-gradient(800px 600px at 100% 0%, #14204a 0%, transparent 50%),
+                        var(--bg);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px; }
+        header { display:flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
+        header h1 { font-size: 1.5rem; margin: 0; letter-spacing: .2px; }
+        .status {
+            display: inline-flex; align-items: center; gap: .5rem; padding: .35rem .6rem; border-radius: 999px;
+            background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); font-weight: 600; font-size: .9rem;
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .dot.ok { background: var(--ok); box-shadow: 0 0 8px rgba(54,211,153,.7); }
+        .dot.run { background: var(--primary); box-shadow: 0 0 8px rgba(91,140,255,.7); }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.0)), var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: var(--shadow);
+        }
+        .card h2 { margin: 0 0 6px 0; font-size: 1.15rem; }
+        .desc { color: var(--muted); margin: 0 0 18px 0; font-size: .95rem; }
+
+        .grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+        label { display: inline-block; margin-bottom: 6px; color: var(--muted); font-size: .95rem; }
+        .field { position: relative; }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            background: #0e1430;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            outline: none;
+            transition: box-shadow .15s ease, border-color .15s ease;
+        }
+        input::placeholder { color: #8391b5; }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--ring); }
+        .toggle {
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            background: transparent; color: var(--muted); border: 0; cursor: pointer; padding: 6px 8px; border-radius: 8px;
+        }
+        .toggle:hover { color: var(--text); background: rgba(255,255,255,.05); }
+
+        .actions { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+        .btn {
+            appearance: none; border: 0; border-radius: 10px; padding: 12px 16px; font-weight: 700; cursor: pointer; color: white;
+            background: linear-gradient(180deg, var(--primary), var(--primary-600));
+            box-shadow: 0 10px 18px rgba(91,140,255,.25), inset 0 -1px 0 rgba(0,0,0,.2);
+            transition: transform .02s ease, filter .15s ease, opacity .2s ease;
+        }
+        .btn:hover { filter: brightness(1.07); }
+        .btn:active { transform: translateY(1px); }
+        .btn[disabled] { opacity: .55; cursor: not-allowed; filter: grayscale(.2); }
+        .hint { color: var(--muted); font-size: .9rem; margin-left: 2px; }
+
+        .callout { margin: 14px 0 16px; padding: 12px 14px; border-radius: 12px; border: 1px solid color-mix(in oklab, var(--danger) 40%, var(--border));
+            background: color-mix(in oklab, var(--danger) 12%, transparent); color: #ffdede; }
+        .footnote { margin-top: 16px; color: var(--muted); font-size: .9rem; }
+
+        @media (min-width: 720px) {
+            .grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <header>
+            <h1>Notion Row Deleter</h1>
+            <div class="status">
+                <span class="dot {{if .Running}}run{{else}}ok{{end}}"></span>
+                <span>{{if .Running}}In progress{{else}}Idle{{end}}</span>
+            </div>
+        </header>
+
+        {{if .Error}}
+        <div class="callout">Error: {{.Error}}</div>
+        {{end}}
+
+        <div class="card">
+            <h2>Start a deletion run</h2>
+            <p class="desc">Provide your Notion API token and the database ID to archive all pages in that database.
+                The process respects a global limit of ~3 requests/second.
+            </p>
+
+            <form method="POST" action="/delete">
+                <div class="grid">
+                    <div>
+                        <label for="token">Notion API Token</label>
+                        <div class="field">
+                            <input id="token" name="token" type="password" placeholder="ntn_..." {{if .Running}}disabled{{end}} required>
+                            <button type="button" class="toggle" aria-label="Show/Hide" onclick="toggleSecret('token')">Show</button>
+                        </div>
+                        <div class="hint">Kept in memory for the session only. Not stored.</div>
+                    </div>
+                    <div>
+                        <label for="dbid">Notion Database ID</label>
+                        <div class="field">
+                            <input id="dbid" name="dbid" type="text" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" {{if .Running}}disabled{{end}} required>
+                        </div>
+                        <div class="hint">Find it in the database URL after notion.so/...</div>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="btn" type="submit" {{if .Running}}disabled{{end}}>Start deletion</button>
+                    {{if .Running}}<span class="hint">Deletion already running…</span>{{end}}
+                </div>
+            </form>
+        </div>
+
+    <p class="footnote">Tip: You can open the progress page in another tab to monitor the live status. Need help? See the <a href="/docs">documentation</a> to obtain your Notion API token.</p>
+    </div>
+
+    <script>
+        function toggleSecret(id){
+            var el = document.getElementById(id);
+            if(!el) return;
+            if(el.type === 'password'){ el.type = 'text'; } else { el.type = 'password'; }
+            // update button label
+            var btn = el.parentElement && el.parentElement.querySelector('.toggle');
+            if(btn){ btn.textContent = el.type === 'password' ? 'Show' : 'Hide'; }
+        }
+    </script>
+</body>
+
+</html>
