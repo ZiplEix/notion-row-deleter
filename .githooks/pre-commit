@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+set -eu
+
+# Allow skipping the build if needed
+if [ "${SKIP_PRECOMMIT_BUILD:-}" = "1" ]; then
+  echo "[pre-commit] SKIP_PRECOMMIT_BUILD=1 -> skipping build"
+  exit 0
+fi
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+if ! command -v make >/dev/null 2>&1; then
+  echo "[pre-commit] 'make' not found. Install make or set SKIP_PRECOMMIT_BUILD=1 to bypass." >&2
+  exit 1
+fi
+
+echo "[pre-commit] Building binaries (make build-all)..."
+if ! make build-all; then
+  echo "[pre-commit] Build failed; aborting commit." >&2
+  exit 1
+fi
+
+echo "[pre-commit] Staging dist/ artifacts..."
+# Force add in case dist/ is ignored
+git add -f dist/
+
+echo "[pre-commit] Done."
+exit 0

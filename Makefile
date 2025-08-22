@@ -16,6 +16,7 @@ help:
 	@echo "  build-windows         Build Windows (amd64, arm64)"
 	@echo "  build-all             Build Linux & Windows (amd64, arm64)"
 	@echo "  clean                 Remove dist directory"
+	@echo "  enable-git-hooks      Configure repo to use .githooks as hooks path"
 
 $(DIST):
 	@mkdir -p $(DIST)
@@ -55,3 +56,7 @@ build-all: build-linux build-windows
 .PHONY: clean
 clean:
 	rm -rf $(DIST)
+
+.PHONY: enable-git-hooks
+enable-git-hooks:
+	sh scripts/enable-git-hooks.sh
