@@ -106,27 +106,32 @@
                 var bar = document.getElementById('bar');
                 if (bar) bar.style.width = pct + '%';
             }
+
             var closed = false;
-            var ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
-            ws.onmessage = function(ev){
-                try {
-                    var d = JSON.parse(ev.data);
-                    if (typeof d.deleted !== 'undefined') document.getElementById('deleted').textContent = d.deleted;
-                    if (typeof d.total !== 'undefined') document.getElementById('total').textContent = d.total;
-                    if (typeof d.total !== 'undefined' && typeof d.deleted !== 'undefined') {
-                        var rem = Number(d.total) - Number(d.deleted);
-                        if (rem < 0) rem = 0;
-                        document.getElementById('remaining').textContent = rem;
-                        setProgress(Number(d.deleted), Number(d.total));
-                    }
-                    if (typeof d.etaSeconds !== 'undefined') document.getElementById('eta').textContent = fmt(d.etaSeconds);
-                    if (typeof d.running !== 'undefined') {
-                        var st = document.getElementById('status');
-                        if (st) st.textContent = d.running ? 'In progress' : 'Completed';
-                        if (!d.running && !closed) { ws.close(); closed = true; }
-                    }
-                } catch(e){}
-            };
+            var ws = null;
+            // Delay WebSocket connection to ensure backend is ready after redirect
+            setTimeout(function(){
+                ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+                ws.onmessage = function(ev){
+                    try {
+                        var d = JSON.parse(ev.data);
+                        if (typeof d.deleted !== 'undefined') document.getElementById('deleted').textContent = d.deleted;
+                        if (typeof d.total !== 'undefined') document.getElementById('total').textContent = d.total;
+                        if (typeof d.total !== 'undefined' && typeof d.deleted !== 'undefined') {
+                            var rem = Number(d.total) - Number(d.deleted);
+                            if (rem < 0) rem = 0;
+                            document.getElementById('remaining').textContent = rem;
+                            setProgress(Number(d.deleted), Number(d.total));
+                        }
+                        if (typeof d.etaSeconds !== 'undefined') document.getElementById('eta').textContent = fmt(d.etaSeconds);
+                        if (typeof d.running !== 'undefined') {
+                            var st = document.getElementById('status');
+                            if (st) st.textContent = d.running ? 'In progress' : 'Completed';
+                            if (!d.running && !closed) { ws.close(); closed = true; }
+                        }
+                    } catch(e){}
+                };
+            }, 1000);
         })();
     </script>
 </body>
